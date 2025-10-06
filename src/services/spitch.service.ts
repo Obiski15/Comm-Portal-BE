@@ -59,7 +59,7 @@ export default class SpitchService {
       language,
       voice:
         SPITCH_VOICES[language][
-          getRandomNumber(0, SPITCH_VOICES[language].length)
+          getRandomNumber(0, SPITCH_VOICES[language].length - 1)
         ],
     })
 

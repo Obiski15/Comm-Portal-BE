@@ -6,6 +6,7 @@ const assignmentSchema = new Schema(
     teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: String,
     description: String,
+    subject: { type: String },
     dueDate: Number,
     attachments: [{ url: String, fileName: String }],
     submissions: {
@@ -17,6 +18,7 @@ const assignmentSchema = new Schema(
           grade: Number,
           status: String,
           submittedAt: Number,
+          feedback: String,
         },
       ],
     },

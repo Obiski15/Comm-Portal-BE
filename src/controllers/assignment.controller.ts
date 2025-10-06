@@ -1,5 +1,5 @@
 import Assignment from "@/models/assignment.model"
-import { Schema } from "mongoose"
+import mongoose from "mongoose"
 
 import CloudinaryService from "@/services/cloudinary.service"
 
@@ -8,29 +8,51 @@ import catchAsync from "@/utils/catchAsync"
 import sendResponse from "@/utils/sendResponse"
 
 export const getAssignments = catchAsync(async (_, res) => {
-  const { class: classId } = res.locals.user
+  const { class: classId, _id: studentId } = res.locals.user
 
-  const assignments = await Assignment.find({ class: classId }).select(
-    "-submissions"
-  )
+  const assignments = await Assignment.aggregate([
+    {
+      $match: { class: new mongoose.Types.ObjectId(classId as string) },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        title: 1,
+        dueDate: 1,
+        class: 1,
+        subject: 1,
+        submissions: {
+          $filter: {
+            input: "$submissions",
+            as: "submission",
+            cond: { $eq: ["$$submission.student", studentId] },
+          },
+        },
+      },
+    },
+  ])
 
   sendResponse({ res, statusCode: 200, data: { assignments } })
 })
 
-export const getAssignment = catchAsync(async (_, res) => {
-  const { class: classId, _id: userId } = res.locals.user
+export const getAssignment = catchAsync(async (req, res) => {
+  const { _id: userId } = res.locals.user
+  const { id: assignmentId } = req.params
 
-  const assignment = Assignment.aggregate([
+  const assignment = await Assignment.aggregate([
     {
-      $match: { class: new Schema.ObjectId(classId) },
+      $match: { _id: new mongoose.Types.ObjectId(assignmentId) },
     },
     {
       $project: {
         class: 1,
         teacher: 1,
+        subject: 1,
         title: 1,
         description: 1,
         dueDate: 1,
+        attachments: 1,
         submissions: {
           $filter: {
             input: "$submissions",
@@ -141,7 +163,7 @@ export const modifyAssignment = catchAsync(async (req, res) => {
 
 export const gradeAssignment = catchAsync(async (req, res) => {
   const { id: assignmentId } = req.params
-  const { student, grade } = req.body
+  const { student, feedback, grade } = req.body
 
   const assignment = await Assignment.findOneAndUpdate(
     {
@@ -151,6 +173,7 @@ export const gradeAssignment = catchAsync(async (req, res) => {
     {
       $set: {
         "submissions.$.grade": +grade,
+        "submissions.$.feedback": feedback,
       },
     },
     { new: true }

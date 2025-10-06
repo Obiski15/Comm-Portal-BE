@@ -10,6 +10,7 @@ process.on("uncaughtException", err => {
   await import("@/config/load-env")
   const { default: config } = await import("@/config/index")
   const { server: appServer } = await import("@/socket")
+  await import("@/app")
 
   const server = appServer.listen(config.SERVER.port, () => {
     logger.info(`App running on port ${config.SERVER.port}`)
