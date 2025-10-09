@@ -8,13 +8,13 @@ const assignmentSchema = new Schema(
     description: String,
     subject: { type: String },
     dueDate: Number,
-    attachments: [{ url: String, fileName: String }],
+    attachments: [{ url: String, fileName: String, fileType: String }],
     submissions: {
       type: [
         {
           student: { type: Schema.Types.ObjectId, ref: "User" },
           content: String,
-          images: [{ url: String, fileName: String }],
+          files: [{ url: String, fileName: String, fileType: String }],
           grade: Number,
           status: String,
           submittedAt: Number,
