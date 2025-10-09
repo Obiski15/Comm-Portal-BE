@@ -9,7 +9,7 @@ import {
 
 import AppError from "@/utils/AppError"
 
-interface UploadOptions extends UploadApiOptions {
+export interface UploadOptions extends UploadApiOptions {
   file: Buffer
   folderPath?: string
 }
@@ -23,27 +23,12 @@ export default class CloudinaryService {
     })
   }
 
-  // async resizeImage(buffer: Buffer) {
-  //   return await sharp(buffer)
-  //     .resize(196, 196, {
-  //       fit: "cover", // Ensures the image fills 196x196
-  //       withoutEnlargement: true, // Prevents upscaling smaller images
-  //     })
-  //     .png({
-  //       compressionLevel: 9, // 0 (fastest, largest) to 9 (slowest, smallest)
-  //       quality: 100, // for image quality tuning
-  //       adaptiveFiltering: true,
-  //       force: true,
-  //     })
-  //     .toBuffer()
-  // }
-
-  async uploadImage({
+  async uploadFile({
     file,
     folderPath = "/",
     ...options
   }: UploadOptions): Promise<UploadApiResponse | undefined> {
-    // upload a single image
+    // upload a single file
     return await new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
@@ -55,7 +40,7 @@ export default class CloudinaryService {
             if (error)
               return reject(
                 new AppError(
-                  "Something went wrong while trying to upload your image",
+                  "Something went wrong while trying to upload your file",
                   500
                 )
               )
@@ -67,22 +52,23 @@ export default class CloudinaryService {
     })
   }
 
-  async uploadImages(files: UploadOptions[]) {
-    // upload multiple images
-    const images = await Promise.allSettled(
-      files.map(file => this.uploadImage(file))
+  async uploadFiles(data: UploadOptions[]) {
+    // upload multiple files
+    const files = await Promise.allSettled(
+      data.map(file => this.uploadFile(file))
     )
 
-    const fulfilled = images
+    const fulfilled = files
       .filter(i => i.status === "fulfilled")
-      .map(image => {
+      .map(file => {
         return {
-          url: image.value?.secure_url,
-          fileName: image.value?.original_filename,
+          url: file.value?.secure_url,
+          fileName: file.value?.original_filename,
+          fileType: file.value?.resource_type,
         }
       })
 
-    const rejected = images.filter(image => image.status === "rejected")
+    const rejected = files.filter(file => file.status === "rejected")
 
     return { fulfilled, rejected }
   }

@@ -1,7 +1,7 @@
 import Assignment from "@/models/assignment.model"
 import mongoose from "mongoose"
 
-import CloudinaryService from "@/services/cloudinary.service"
+import CloudinaryService, { UploadOptions } from "@/services/cloudinary.service"
 
 import AppError from "@/utils/AppError"
 import catchAsync from "@/utils/catchAsync"
@@ -69,33 +69,39 @@ export const getAssignment = catchAsync(async (req, res) => {
 
 export const createAssignment = catchAsync(async (req, res) => {
   const { class: classId, _id: teacherId } = res.locals.user
-  const { title, description, dueDate } = req.body
+  const { title, description, dueDate, subject } = req.body
 
-  let images: { url?: string; fileName?: string }[] = []
+  let attachments: {
+    url?: UploadOptions["secure_url"]
+    fileName?: UploadOptions["original_filename"]
+    fileType?: UploadOptions["resource_type"]
+  }[] = []
 
   if (req.files) {
     const files = (req.files as Express.Multer.File[]).map(({ buffer }) => {
       return {
         file: buffer,
-        folderPath: "/assignments",
+        folderPath: `${classId}/assignments/teachers`,
+        resource_type: "raw" as UploadOptions["resource_type"],
         filename_override: `teacher-${teacherId}-${Date.now()}`,
       }
     })
 
     // upload to cloud
-    const result = await new CloudinaryService().uploadImages(files)
+    const result = await new CloudinaryService().uploadFiles(files)
 
-    // assign images
-    images = result.fulfilled
+    // assign attachments
+    attachments = result.fulfilled
   }
 
   const assignment = await Assignment.create({
     class: classId,
     teacher: teacherId,
     title,
+    subject,
     description,
     dueDate,
-    images,
+    attachments,
   })
 
   sendResponse({ res, statusCode: 201, data: { assignment } })
@@ -103,7 +109,7 @@ export const createAssignment = catchAsync(async (req, res) => {
 
 export const submitAssignment = catchAsync(async (req, res, next) => {
   const { id: assignmentId } = req.params
-  const { _id: userId } = res.locals.user
+  const { _id: userId, class: classId } = res.locals.user
   const { content } = req.body
 
   // check for existing assignment
@@ -115,22 +121,48 @@ export const submitAssignment = catchAsync(async (req, res, next) => {
   if (isAssignmentPresent)
     return next(new AppError("Assignment Previously Submitted", 400))
 
-  let images: { url?: string; fileName?: string }[] = []
+  let uploadedFiles: {
+    url?: UploadOptions["secure_url"]
+    fileName?: UploadOptions["original_filename"]
+    fileType?: UploadOptions["resource_type"]
+  }[] = []
 
-  if (req.files) {
-    const files = (req.files as Express.Multer.File[]).map(({ buffer }) => {
-      return {
-        file: buffer,
-        folderPath: "/assignments",
-        filename_override: `user-${userId}-${Date.now()}`,
-      }
-    })
+  const files = req.files as Record<"images" | "audio", Express.Multer.File[]>
 
-    // upload to cloud
-    const result = await new CloudinaryService().uploadImages(files)
+  if (files) {
+    let imagesToUpload: UploadOptions[] = []
+    let audioToUpload: UploadOptions[] = []
 
-    // assign images
-    images = result.fulfilled
+    if (files.images) {
+      imagesToUpload = files.images.map(({ buffer }) => {
+        return {
+          file: buffer,
+          folderPath: `${classId}/assignments/students/images`,
+          filename_override: `user-${userId}-${Date.now()}`,
+        }
+      })
+    }
+
+    if (files.audio) {
+      audioToUpload = files.audio.map(({ buffer }) => {
+        return {
+          file: buffer,
+          folderPath: `${classId}/assignments/students/audio`,
+          filename_override: `user-${userId}-${Date.now()}`,
+          resource_type: "video" as UploadOptions["resource_type"],
+        }
+      })
+    }
+
+    const uploads = [...imagesToUpload, ...audioToUpload]
+
+    if (uploads.length) {
+      // upload to cloud
+      const result = await new CloudinaryService().uploadFiles(uploads)
+
+      // assign files
+      uploadedFiles = result.fulfilled
+    }
   }
 
   const assignment = await Assignment.findByIdAndUpdate(
@@ -140,7 +172,7 @@ export const submitAssignment = catchAsync(async (req, res, next) => {
         submissions: {
           student: userId,
           content,
-          images,
+          files: uploadedFiles,
           submittedAt: Date.now(),
         },
       },

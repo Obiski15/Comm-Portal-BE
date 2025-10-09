@@ -148,13 +148,15 @@ export const sendMessage = catchAsync(async (req, res) => {
       return {
         file: buffer,
         folderPath:
-          recipientType === "class" ? "/messages/class" : "/messages/users",
+          recipientType === "class"
+            ? `${id}/messages/class`
+            : `/messages/users`,
         filename_override: `${recipientType}-${sender}-${recipient}-${Date.now()}`,
       }
     })
 
     // upload to cloud
-    const result = await new CloudinaryService().uploadImages(files)
+    const result = await new CloudinaryService().uploadFiles(files)
 
     // assign images
     images = result.fulfilled

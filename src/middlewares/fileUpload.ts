@@ -8,7 +8,13 @@ const fileUpload = () => {
   return multer({
     storage,
     fileFilter: (_, file, cb) => {
-      const allowedFiles = ["image/png", "image/jpeg", "image/jpg"]
+      const allowedFiles = [
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        ".pdf",
+        ".docx",
+      ]
 
       if (allowedFiles.includes(file.mimetype)) return cb(null, true)
 

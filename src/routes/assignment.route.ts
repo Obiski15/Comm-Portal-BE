@@ -20,7 +20,7 @@ router
   .post(
     protect,
     validateRole("teacher"),
-    fileUpload().array("attachment"),
+    fileUpload().array("attachments"),
     createAssignment
   )
 
@@ -35,7 +35,10 @@ router.post(
   "/submit/:id",
   protect,
   validateRole("student"),
-  fileUpload().array("image"),
+  fileUpload().fields([
+    { name: "images", maxCount: 3 },
+    { name: "audio", maxCount: 1 },
+  ]),
   submitAssignment
 )
 
