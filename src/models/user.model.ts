@@ -9,7 +9,7 @@ import { IUserDocument } from "../types/types"
 
 const userSchema = new mongoose.Schema<IUserDocument>(
   {
-    name: { type: String, trim: true, lowercase: true },
+    full_name: { type: String, trim: true, lowercase: true },
     role: {
       type: String,
       default: "student",

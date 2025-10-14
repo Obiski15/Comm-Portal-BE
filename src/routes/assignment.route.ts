@@ -19,7 +19,7 @@ router
   .get(protect, getAssignments)
   .post(
     protect,
-    validateRole("teacher"),
+    validateRole("admin", "teacher"),
     fileUpload().array("attachments"),
     createAssignment
   )
@@ -27,14 +27,19 @@ router
 router
   .route("/:id")
   .get(protect, getAssignment)
-  .delete(protect, validateRole("teacher"), deleteAssignment)
-  .put(protect, validateRole("teacher"), modifyAssignment)
+  .delete(protect, validateRole("admin", "teacher"), deleteAssignment)
+  .put(protect, validateRole("admin", "teacher"), modifyAssignment)
 
-router.post("/grade/:id", protect, validateRole("teacher"), gradeAssignment)
+router.post(
+  "/grade/:id",
+  protect,
+  validateRole("admin", "teacher"),
+  gradeAssignment
+)
 router.post(
   "/submit/:id",
   protect,
-  validateRole("student"),
+  validateRole("admin", "student"),
   fileUpload().fields([
     { name: "images", maxCount: 3 },
     { name: "audio", maxCount: 1 },

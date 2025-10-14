@@ -15,7 +15,10 @@ const config: {
   SERVER: { port: number; env: string }
   SPITCH: { key: string }
   JWT: {
-    secret: string
+    algorithm: SignOptions["algorithm"]
+    authSecret: string
+    inviteSecret: string
+    inviteExpiresIn: SignOptions["expiresIn"]
     refreshTokenExpiresIn: SignOptions["expiresIn"]
     accessTokenExpiresIn: SignOptions["expiresIn"]
   }
@@ -46,7 +49,11 @@ const config: {
   },
   AUTH: { saltWorkFactor: 10 },
   JWT: {
-    secret: process.env.JWT_SECRET!,
+    algorithm: "HS256",
+    authSecret: process.env.JWT_AUTH_SECRET!,
+    inviteSecret: process.env.JWT_INVITE_SECRET!,
+    inviteExpiresIn: process.env
+      .JWT_INVITE_EXPIRES_IN as SignOptions["expiresIn"],
     refreshTokenExpiresIn: process.env
       .JWT_REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"],
     accessTokenExpiresIn: process.env

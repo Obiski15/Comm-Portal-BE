@@ -1,4 +1,5 @@
 import crypto from "crypto"
+import { promisify } from "util"
 import config from "@/config"
 import { IUserDocument } from "@/types/types"
 import { Request, Response } from "express"
@@ -47,13 +48,15 @@ export const signToken = ({
   })
 }
 
+export const verifyJwt = promisify(jwt.verify)
+
 const verifyAccessToken = (req: Request) => {
   const accessToken = getAuthToken("accessToken", req)
 
   let token: null | IJwtPayload = null
 
   try {
-    token = jwt.verify(accessToken, config.JWT.secret) as IJwtPayload
+    token = jwt.verify(accessToken, config.JWT.authSecret) as IJwtPayload
   } catch {
     token = null
   }
@@ -63,14 +66,14 @@ const verifyAccessToken = (req: Request) => {
 
 const verifyRefreshToken = (req: Request, res: Response) => {
   const refreshToken = getAuthToken("refreshToken", req)
-  const token = jwt.verify(refreshToken, config.JWT.secret) as IJwtPayload
+  const token = jwt.verify(refreshToken, config.JWT.authSecret) as IJwtPayload
   const accessToken = signToken({
     data: { userId: token.userId },
     options: {
-      algorithm: "HS256",
+      algorithm: config.JWT.algorithm,
       expiresIn: config.JWT.accessTokenExpiresIn,
     },
-    secret: config.JWT.secret,
+    secret: config.JWT.authSecret,
   })
   setCookie(res, "accessToken", accessToken, {
     maxAge: config.COOKIES.accessTokenExpiresIn,
@@ -96,15 +99,18 @@ export const signAuthTokens = (userId: string) => {
   const refreshToken = signToken({
     data: { userId },
     options: {
-      algorithm: "HS256",
+      algorithm: config.JWT.algorithm,
       expiresIn: config.JWT.refreshTokenExpiresIn,
     },
-    secret: config.JWT.secret,
+    secret: config.JWT.authSecret,
   })
   const accessToken = signToken({
     data: { userId },
-    options: { algorithm: "HS256", expiresIn: config.JWT.accessTokenExpiresIn },
-    secret: config.JWT.secret,
+    options: {
+      algorithm: config.JWT.algorithm,
+      expiresIn: config.JWT.accessTokenExpiresIn,
+    },
+    secret: config.JWT.authSecret,
   })
 
   return { refreshToken, accessToken }

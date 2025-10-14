@@ -1,14 +1,48 @@
+import config from "@/config"
+import Invite from "@/models/invite.model"
 import User from "@/models/user.model"
+import jwt from "jsonwebtoken"
 
 import AppError from "@/utils/AppError"
 import { signTokenAndSend } from "@/utils/auth"
 import catchAsync from "@/utils/catchAsync"
 
-export const signup = catchAsync(async (req, res) => {
-  // create user
+export const signup = catchAsync(async (req, res, next) => {
+  // check for token
+  const { token } = req.query as { token: string }
+  const { password, confirmPassword, fullName } = req.body
+
+  if (!token) return next(new AppError("Missing or Invalid Invite token", 400))
+
+  // check invitation
+  const invite = await Invite.findOne({ token })
+
+  if (!invite) return next(new AppError("Missing or Invalid Invite token", 403))
+
+  // validate token
+  let payload: jwt.JwtPayload | null = null
+
+  try {
+    payload = jwt.verify(token, config.JWT.inviteSecret) as jwt.JwtPayload
+  } catch {
+    return next(new AppError("Invalid invite token", 400))
+  }
+
+  if (invite.used || Date.now() > payload.exp! * 1000) {
+    return next(new AppError("Expired invite token", 400))
+  }
+
   const user = await User.create({
-    ...req.body,
+    confirm_password: confirmPassword,
+    full_name: fullName,
+    email: invite.email,
+    role: invite.role,
+    password,
   })
+
+  invite.status = "accepted"
+  invite.used = true
+  await invite.save()
 
   signTokenAndSend(res, 201, user)
 })
@@ -18,15 +52,6 @@ export const login = catchAsync(async (req, res, next) => {
 
   // check if user exist
   if (!user) return next(new AppError("User not found", 404))
-
-  const host = (req.headers["x-forwarded-host"] || req.headers.host) as string
-
-  const subdomain = host.split(".")[0]
-
-  if (!req.headers["postman-token"]) {
-    if (user.role !== subdomain)
-      return next(new AppError("Requested user not found", 404))
-  }
 
   // confirm user password
   const isPasswordVerified = await user.comparePassword(req.body.password)

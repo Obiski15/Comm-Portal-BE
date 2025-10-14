@@ -3,7 +3,7 @@ import { Schema, Types } from "mongoose"
 export interface IUserDocument {
   _id: Types.ObjectId
   googleId?: string
-  name: string
+  full_name: string
   email: string
   image?: string
   role?: "student" | "teacher" | "parent" | "admin"
