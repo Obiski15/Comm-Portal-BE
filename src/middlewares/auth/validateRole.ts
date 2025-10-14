@@ -9,7 +9,7 @@ const validateRole =
   (_req: Request, res: Response, next: NextFunction) => {
     const { role } = res.locals.user
 
-    if (!roles.includes(role)) next(new AppError("Access Denied", 403))
+    if (!roles.includes(role)) return next(new AppError("Access Denied", 403))
 
     next()
   }

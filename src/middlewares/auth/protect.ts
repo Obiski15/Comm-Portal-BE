@@ -15,7 +15,7 @@ const protect = catchAsync(async (req, res, next) => {
   const passwordChanged = await user.hasPasswordChanged(iat! * 1000)
 
   if (passwordChanged)
-    next(new AppError("User has changed password since last login", 401))
+    return next(new AppError("User has changed password since last login", 401))
 
   // attach user to res locals
   res.locals.user = user
