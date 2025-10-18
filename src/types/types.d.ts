@@ -18,6 +18,8 @@ export interface IUserDocument {
   password_last_updated_at?: number
   createdAt: string
   updatedAt: string
+  isDeleted?: boolean
+  deletedAt?: number
   comparePassword(userPassword: string): Promise<boolean>
   hasPasswordChanged(tokenIssuedAt: number): Promise<boolean>
   createResetToken(): string

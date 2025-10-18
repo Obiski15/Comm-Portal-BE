@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import config from "@/config"
 import bcrypt from "bcryptjs"
-import mongoose, { Schema } from "mongoose"
+import mongoose, { Query, Schema } from "mongoose"
 
 import { createHashToken } from "@/utils/auth"
 
@@ -48,6 +48,8 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       required: [true, "Please confirm your password"],
       minLength: [6, "Minimum password length is 8"],
     },
+    isDeleted: { type: Boolean, default: false, select: false },
+    deletedAt: { type: Number, select: false },
     password_reset_token: { type: String, select: false },
     password_reset_token_expires_at: { type: Number, select: false },
     email_verification_token: { type: String, select: false },
@@ -57,6 +59,11 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     timestamps: true,
   }
 )
+
+userSchema.pre<Query<IUserDocument, IUserDocument>>(/^find/, function (next) {
+  this.where({ isDeleted: false })
+  next()
+})
 
 userSchema.pre("save", async function (next) {
   // check if password is modified.

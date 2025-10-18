@@ -62,6 +62,13 @@ export const login = catchAsync(async (req, res, next) => {
   signTokenAndSend(res, 200, user)
 })
 
+export const logout = catchAsync(async (_, res) => {
+  res.clearCookie("refreshToken")
+  res.clearCookie("accessToken")
+
+  res.status(200).json({ status: "success" })
+})
+
 // export const forgotPassword = catchAsync(
 //   async (
 //     req,
